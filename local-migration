@@ -1,0 +1,42 @@
+import paramiko
+from scp import SCPClient
+import os
+
+# Informations de la machine source et destination
+SOURCE_DIR = "/home/user/projet_ansible"      # Chemin local du projet Ansible
+DEST_HOST = "192.168.1.20"                    # Adresse IP ou nom d’hôte de la machine destination
+DEST_USER = "remote_user"                     # Utilisateur de la machine destination
+DEST_PASS = "mot_de_passe"                     # Mot de passe SSH
+DEST_DIR = "/home/remote_user/projet_ansible" # Dossier de destination
+
+def creer_client_ssh(hote, utilisateur, mot_de_passe):
+    """Créer et retourner une connexion SSH."""
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    print(f"Connexion à {hote}...")
+    client.connect(hote, username=utilisateur, password=mot_de_passe)
+    print("✅ Connexion SSH établie.")
+    return client
+
+def transferer_projet():
+    """Transférer le projet Ansible."""
+    if not os.path.exists(SOURCE_DIR):
+        print(f"❌ Le dossier source {SOURCE_DIR} n'existe pas.")
+        return
+
+    ssh_client = creer_client_ssh(DEST_HOST, DEST_USER, DEST_PASS)
+
+    # Création du dossier destination
+    print(f"📂 Création du dossier {DEST_DIR} sur la machine distante...")
+    ssh_client.exec_command(f"mkdir -p {DEST_DIR}")
+
+    # Transfert des fichiers
+    print("🚀 Transfert des fichiers...")
+    with SCPClient(ssh_client.get_transport()) as scp:
+        scp.put(SOURCE_DIR, recursive=True, remote_path=DEST_DIR)
+
+    print("✅ Transfert terminé avec succès.")
+    ssh_client.close()
+
+if __name__ == "__main__":
+    transferer_projet()
